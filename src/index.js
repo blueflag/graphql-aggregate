@@ -1,3 +1,10 @@
+import {Map,fromJS} from 'immutable';
+import {GraphQLList,
+	GraphQLFloat,
+	GraphQLScalarType,
+	GraphQLObjectType,
+	GraphQLString} from 'graphql'
+
 const GeneralType =  new GraphQLScalarType({
     name: 'GeneralType',
     serialize: (value) => value,
