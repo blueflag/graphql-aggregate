@@ -1,0 +1,23 @@
+{
+  "name": "graphql-aggregate",
+  "version": "0.0.1",
+  "description": "Aggregation functions for graphql",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "babel src --out-dir lib"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/blueflag/graphql-aggregate.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/blueflag/graphql-aggregate/issues"
+  },
+  "homepage": "https://github.com/blueflag/graphql-aggregate#readme",
+  "devDependencies": {
+    "babel-cli": "^6.18.0"
+  }
+}
