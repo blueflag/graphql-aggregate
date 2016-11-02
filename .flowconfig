@@ -1,0 +1,6 @@
+[options]
+module.system.node.resolve_dirname=node_modules
+module.system.node.resolve_dirname=..
+
+[libs]
+node_modules/immutable-js/dist/immutable.js.flow

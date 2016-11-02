@@ -4,7 +4,9 @@
   "description": "Aggregation functions for graphql",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "npm run test-jasmine-coverage",
+    "test-jasmine": "node tests/jasmine.js",
+    "test-jasmine-coverage": "nyc npm run test-jasmine",
     "build": "babel src --out-dir lib"
   },
   "repository": {
@@ -19,9 +21,35 @@
   "homepage": "https://github.com/blueflag/graphql-aggregate#readme",
   "devDependencies": {
     "babel-cli": "^6.18.0",
-    "eslint-config-blueflag": "^0.1.0"
+    "eslint-config-blueflag": "^0.1.0",
+    "flow-bin": "^0.34.0"
   },
   "dependencies": {
-    "babel-preset-blueflag": "0.0.1"
+    "babel-preset-blueflag": "0.0.1",
+    "graphql": "^0.7.2",
+    "immutable-math": "0.0.0"
+  },
+  "nyc": {
+    "all": true,
+    "include": [
+      "src/**"
+    ],
+    "exclude": [
+      "src/**/__mocks__/**",
+      "src/**/*-spec.js",
+      "src/**/*-tests.js",
+      "public/**",
+      "src/@auditr/components/**"
+    ],
+    "reporter": [
+      "lcov",
+      "text"
+    ],
+    "extension": [
+      ".jsx"
+    ],
+    "require": [
+      "./tests/environment.js"
+    ]
   }
 }
