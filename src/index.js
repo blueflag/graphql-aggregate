@@ -19,8 +19,6 @@ const GeneralType =  new GraphQLScalarType({
     parseLiteral: (ast) => ast.value
 });
 
-// import imMath from 'immutable-math'
-
 const imMath = require('immutable-math');
 
 const INT_TYPE_NAME = 'Int';
@@ -68,6 +66,11 @@ export function KeyedList(type: GraphQLOutputType): GraphQLObjectType{
         keyedListTypes[type.name] = new GraphQLObjectType({
             name: `${type.name}KeyedList`,
             fields: () => ({
+                asMap : {
+                    type: GeneralType,
+                    description: `Return an unstructed map`,
+                    resolve: (obj) => obj
+                }, 
                 keys : {
                     type: new GraphQLList(GraphQLString),
                     description: `Keys after aggregation`,
@@ -143,6 +146,7 @@ export function KeyedList(type: GraphQLOutputType): GraphQLObjectType{
 
 /*
 * Checks if a Map<GraphQLFieldConfig> from a graphql schema is a float
+* @private
 * @params {Map} field immutable map from GraphQLFieldConfig
 * @returns {boolean} true if the field is a Float (GraphQLFloat)
 */
@@ -153,6 +157,7 @@ function isFloat(field: Map<string, *>): boolean {
 
 /*
 * Checks if a Map<GraphQLFieldConfig> from a graphql schema is a int
+* @private
 * @params {Map} field immutable map from GraphQLFieldConfig
 * @returns {boolean} true if the field is a Int (GraphQLInt)
 */
@@ -163,6 +168,7 @@ function isInt(field: Map<string, *>): boolean {
 /*
 * Checks if a Map<GraphQLFieldConfig> from a graphql schema is a string
 * Checks if a Map from a graphql schema is a string
+* @private
 * @returns {boolean} true if the field is a String (GraphQLString)
 */
 
@@ -179,7 +185,7 @@ function CreateFields(type: GraphQLOutputType,
 
     let fields = type._typeConfig.fields()
     return fromJS(fields)
-        .reduce((resultFields: Map<string,*>, field: Map<string,*>, key: string): Map => {
+        .reduce((resultFields: Map<string,*>, field: Map<string,*>, key: string): Map<string, GraphQLFieldConfig> => {
             if(typeCheck(field)){
                 return resultFields.set(key, Map({
                     type: returnType,
