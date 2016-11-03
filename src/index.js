@@ -2,12 +2,13 @@
 
 import {Map,fromJS} from 'immutable';
 import {GraphQLList,
-	GraphQLFloat,
-	GraphQLScalarType,
-	GraphQLObjectType,
-	GraphQLString,
+    GraphQLFloat,
+    GraphQLScalarType,
+    GraphQLObjectType,
+    GraphQLString,
     GraphQLOutputType,
     GraphQLFieldConfig,
+    GraphQLInt,
     GraphQLFieldConfigMap,
     GraphQLFieldConfigMapThunk} from 'graphql'
 
@@ -178,14 +179,12 @@ function CreateFields(type: GraphQLOutputType,
 
     let fields = type._typeConfig.fields()
     return fromJS(fields)
-        .reduce((resultFields: Map, field: Map, key: String): Map => {
+        .reduce((resultFields: Map<string,*>, field: Map<string,*>, key: string): Map => {
             if(typeCheck(field)){
-            //if(validFieldTypesList == null || validFieldTypesList.includes(field.get('type').name)){
                 return resultFields.set(key, Map({
                     type: returnType,
                     resolve: (obj): GraphQLFieldConfig => { return resolver(field.get('resolve'), key, obj) }
                 }))
-            //}
             }
             return resultFields;
         }, Map()).toJS();
@@ -212,6 +211,12 @@ export function AggregationType(type: GraphQLObjectType): GraphQLObjectType {
                     description: `List of ${type.name}`,
                     type: new GraphQLList(type),
                     resolve: (obj: Array<*>): GraphQLList<*> => obj
+                },
+                count : {
+                    description: `Size of the amount of items`,
+                    type: GraphQLInt,
+                    resolve: (obj: Array<*>): number => obj.length
+
                 },
                 groupedBy : {
                     type: new GraphQLObjectType({
@@ -240,6 +245,22 @@ export function AggregationType(type: GraphQLObjectType): GraphQLObjectType {
                                 GraphQLFloat, 
                                 (fieldResolver: * , key: string, obj: *) => {
                                     return fromJS(obj).update(imMath.sumBy(ii => fieldResolver(ii)))
+                                }, 
+                                (field) => isFloat(field) || isInt(field))
+                        }
+                    }),
+                    resolve: (obj) => obj
+                },
+                average: {
+                    description: `Returns the average of a field on ${type.name}`,
+                    type: new GraphQLObjectType({
+                        name: `${type.name}Average`,
+                        description: `Perform averages on ${type.name}`,
+                        fields: () => {
+                            return CreateFields(type, 
+                                GraphQLFloat, 
+                                (fieldResolver: * , key: string, obj: *) => {
+                                    return fromJS(obj).update(imMath.averageBy(ii => fieldResolver(ii)))
                                 }, 
                                 (field) => isFloat(field) || isInt(field))
                         }
