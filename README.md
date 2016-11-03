@@ -9,7 +9,7 @@ To get access to an aggregation schema on a graphql you require an array of obje
 
 ###Example
 
-The following list of answers
+The following `GraphQLFieldConfig` defining a list of answers
 
 ```javascript
 answers : {
@@ -17,9 +17,13 @@ answers : {
 }
 ```
 
-can be turned into an aggregate type using the following functions.
+can be turned into an aggregate type using the following as a `GraphQLFieldConfig` _see field configuration of the [GraphQLObjectType](http://graphql.org/graphql-js/type/#graphqlobjecttype)_
 
 ```javascript
+
+// Creates an AggregationType with based on the AnswerType
+// The resolver must return an Array that can be resolved into AnswerTypes
+
 aggregateAnswers: {
     type: AggregationType(AnswerType), 
     resolve: (obj) => obj.answers
@@ -31,7 +35,7 @@ in the answer type.
 
 for instance if the AnswerType had the following definition.
 
-```json
+```
 type AnswerType {
   id: ID,
   username: String,
