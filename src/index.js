@@ -5,7 +5,11 @@ import {GraphQLList,
 	GraphQLFloat,
 	GraphQLScalarType,
 	GraphQLObjectType,
-	GraphQLString} from 'graphql'
+	GraphQLString,
+    GraphQLOutputType,
+    GraphQLFieldConfig,
+    GraphQLFieldConfigMap,
+    GraphQLFieldConfigMapThunk} from 'graphql'
 
 const GeneralType =  new GraphQLScalarType({
     name: 'GeneralType',
@@ -22,32 +26,43 @@ const INT_TYPE_NAME = 'Int';
 const FLOAT_TYPE_NAME = 'Float';
 const STRING_TYPE_NAME = 'String';
 
-var averageListTypes = {}
-export function AverageType(type){
-    if(!averageListTypes[type.name]){
-        averageListTypes[type.name] = new GraphQLObjectType({
-            name: `${type.name}Average`,
-            fields: () => {
-                let types = fromJS(type._typeConfig.fields())
-                            .reduce((resultFields, field, key) => {
-                                return resultFields.set(key, Map({
-                                    type: GeneralType,
-                                    resolve: (obj) => {
-                                        return obj.map(ii => {
-                                            return ii .reduce((rr, jj) => rr + jj.get(key), 0)
-                                        })
-                                    }
-                                }))
-                            }, Map())
-                return types.toJS();
-            }
-        });
-    }
-    return averageListTypes[type.name]
-}
+// var averageListTypes = {}
+// export function AverageType(type){
+//     if(!averageListTypes[type.name]){
+//         averageListTypes[type.name] = new GraphQLObjectType({
+//             name: `${type.name}Average`,
+//             fields: () => {
+//                 let types = fromJS(type._typeConfig.fields())
+//                             .reduce((resultFields, field, key) => {
+//                                 return resultFields.set(key, Map({
+//                                     type: GeneralType,
+//                                     resolve: (obj) => {
+//                                         return obj.map(ii => {
+//                                             return ii .reduce((rr, jj) => rr + jj.get(key), 0)
+//                                         })
+//                                     }
+//                                 }))
+//                             }, Map())
+//                 return types.toJS();
+//             }
+//         });
+//     }
+//     return averageListTypes[type.name]
+// }
+
+
+/**
+ * A list that has an associated group of keys,
+ * @param {GraphQLOutputType} type that the keyed list is based on
+ * @returns a GraphQLObjectType that is specific for the graphql object type being aggregated.
+ */
+
+// Because there is no way other then other then returning a
+// GraphQLScalarType to have key value pairs, and then
+// we have no way of adding more aggregations
 
 var keyedListTypes = {};
-export function KeyedList(type){
+export function KeyedList(type: GraphQLOutputType): GraphQLObjectType{
     if(!keyedListTypes[type.name]){
         keyedListTypes[type.name] = new GraphQLObjectType({
             name: `${type.name}KeyedList`,
@@ -127,146 +142,110 @@ export function KeyedList(type){
 
 /*
 * Checks if a Map<GraphQLFieldConfig> from a graphql schema is a float
+* @params {Map} field immutable map from GraphQLFieldConfig
+* @returns {boolean} true if the field is a Float (GraphQLFloat)
 */
+
 function isFloat(field: Map<string, *>): boolean {
     return field.get('type').name === FLOAT_TYPE_NAME
 }
 
 /*
-* @params field immutable map from GraphQLFieldConfig
+* Checks if a Map<GraphQLFieldConfig> from a graphql schema is a int
+* @params {Map} field immutable map from GraphQLFieldConfig
+* @returns {boolean} true if the field is a Int (GraphQLInt)
 */
 function isInt(field: Map<string, *>): boolean {
     return field.get('type').name === INT_TYPE_NAME
 }
 
 /*
+* Checks if a Map<GraphQLFieldConfig> from a graphql schema is a string
 * Checks if a Map from a graphql schema is a string
+* @returns {boolean} true if the field is a String (GraphQLString)
 */
+
 function isString(field: Map<string, *>): boolean {
     return field.get('type').name === STRING_TYPE_NAME
 }
 
+//fieldResolver resolver for the type that we are creating the filds for.
+function CreateFields(type: GraphQLOutputType,
+        returnType: GraphQLOutputType, 
+        resolver: (fieldResolver: * , key: string, obj: *) => GraphQLFieldConfig,
+        typeCheck: (field: GraphQLFieldConfig) => boolean
+    ): GraphQLFieldConfigMap {
+
+    let fields = type._typeConfig.fields()
+    return fromJS(fields)
+        .reduce((resultFields: Map, field: Map, key: String): Map => {
+            if(typeCheck(field)){
+            //if(validFieldTypesList == null || validFieldTypesList.includes(field.get('type').name)){
+                return resultFields.set(key, Map({
+                    type: returnType,
+                    resolve: (obj): GraphQLFieldConfig => { return resolver(field.get('resolve'), key, obj) }
+                }))
+            //}
+            }
+            return resultFields;
+        }, Map()).toJS();
+}
+
+// field, key
+
+/**
+ * Creates an AggregationType with a buvbased on the GraphQLOutputType requested,
+ * Objects that wished to be resolved this way must be a Array of the requested type.
+ *
+ *   =
+ * @param {GraphQLOutputType} type - type to create the aggregaion functions for
+ */
 
 var aggregationTypes = {};
-export function AggregationType(type: GraphQLOutputType): GraphQLOutputType {
+export function AggregationType(type: GraphQLObjectType): GraphQLObjectType {
     if(!aggregationTypes[type.name]){
         aggregationTypes[type.name] = new GraphQLObjectType({
             name: `${type.name}Aggregation`,
             description: `Preform aggregation methods on ${type.name}`,
-            fields: () => ({
+            fields: (): GraphQLFieldConfigMap => ({
                 values : {
                     description: `List of ${type.name}`,
                     type: new GraphQLList(type),
-                    resolve: (obj) => obj
+                    resolve: (obj: Array<*>): GraphQLList<*> => obj
                 },
-
-                // groupedByNew : {
-                //     type: new GraphQLObjectType({
-                //         name: `${type.name}GroupedByNewAggregation`,
-                //         description: `Preform groupBy aggregation methods on ${type.name}`,
-                //         fields: () => {
-                //             let types = fromJS(type._typeConfig.fields())
-                //                 .reduce((resultFields, field, key) => {
-                //                     return resultFields.set(key, Map({
-                //                         type: new GraphQLList(AggregationType(type)),
-                //                         resolve: (obj) => fromJS(obj)
-                //                             .groupBy(v => v.get(key))
-                //                     }))
-                //                 }, Map())
-                //             return types.toJS();
-                //         },
-                //         resolve: (obj) => obj
-                //     })
-                // },
-
-                test : {
-                    type: new GraphQLObjectType({
-                        name: `${type.name}Test`,
-                        description: `Preform groupBy aggregation methods on ${type.name}`,
-                        fields: () => ({
-                            test: {
-                                type: GraphQLString
-                            }
-                            // let types = fromJS(type._typeConfig.fields())
-                            //     .reduce((resultFields, field, key) => {
-                            //         return resultFields.set(key, Map({
-                            //             type: KeyedList(type),
-                            //             resolve: (obj) => fromJS(obj)
-                            //                 .groupBy(v => v.get(key))
-                            //         }))
-                            //     }, Map())
-                            // return types.toJS();
-                        })
-                    }),
-                    description: `Preform groupBy aggregation methods on ${type.name}`,
-                    resolve: (obj) => obj
-                },
-
                 groupedBy : {
                     type: new GraphQLObjectType({
                         name: `${type.name}GroupedByAggregation`,
                         description: `Preform groupBy aggregation methods on ${type.name}`,
                         fields: () => {
-                            let types = fromJS(type._typeConfig.fields())
-                                .reduce((resultFields, field, key) => {
-                                    return resultFields.set(key, Map({
-                                        type: KeyedList(type),
-                                        resolve: (obj) => fromJS(obj)
-                                            .groupBy(v => v.get(key))
-                                    }))
-                                }, Map())
-
-                            console.log('HELLO ', JSON.stringify(type._typeConfig.fields(), null, 4))
-                            return types.toJS();
+                            return CreateFields(type, 
+                                KeyedList(type), 
+                                (fieldResolver: * , key: string, obj: *) => {
+                                    return fromJS(obj).groupBy(ii => fieldResolver(ii))
+                                }, 
+                                () => true 
+                            )
                         }
                     }),
                     description: `Preform a groupBy aggregation method on ${type.name}`,
                     resolve: (obj) => obj
                 },
-                sum: {
+                sum: { 
+                    description: `Perform sum on ${type.name}`,
                     type: new GraphQLObjectType({
                         name: `${type.name}Sum`,
                         description: `Perform sum on ${type.name}`,
                         fields: () => {
-                            let types = fromJS(type._typeConfig.fields())
-                                .reduce((resultFields, field, key) => {
-                                    if(isFloat(field) || isInt(field)){
-                                        console.log(field);
-                                        return resultFields.set(key, Map({
-                                            type: GraphQLFloat,
-                                            resolve: (obj) => fromJS(obj).update(imMath.sumBy(ii => field.get('resolve')(ii)))
-                                        }))
-                                    }
-                                    return resultFields;
-                                }, Map())
-                            console.log('Resulting types', types);
-                            return types.toJS();
+                            return CreateFields(type, 
+                                GraphQLFloat, 
+                                (fieldResolver: * , key: string, obj: *) => {
+                                    return fromJS(obj).update(imMath.sumBy(ii => fieldResolver(ii)))
+                                }, 
+                                (field) => isFloat(field) || isInt(field))
                         }
                     }),
-                    description: `Perform sum on ${type.name}`,
                     resolve: (obj) => obj
                 }
-                // filter : {
-                //     name: `${type.name}FilterAggregation`,
-                //     description: `Preform filter aggregation methods on ${type.name}`,
-                //     args: {
-                //         gt: {
-                //             type: GeneralType,
-                //             description: `Check if value is `
-                //         }
-                //     }
-                //     fields: () => {
-                //         let types = fromJS(type._typeConfig.fields())
-                //             .reduce((resultFields, field, key) => {
-                //                 return resultFields.set(key, Map({
-                //                     type: KeyedList(type),
-                //                     resolve: (obj) => fromJS(obj)
-                //                         .groupBy(v => v.get(key))
-                //                 }))
-                //             }, Map())
-                //         return types.toJS();
-                //     }
-                // }
             })
         })
     }
