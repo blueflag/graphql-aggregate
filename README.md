@@ -11,7 +11,7 @@ To get access to an aggregation schema on a graphql you require an array of obje
 
 The following list of answers
 
-```
+```javascript
 answers : {
   type: new GraphQLList(AnswerType)
 }
@@ -19,7 +19,7 @@ answers : {
 
 can be turned into an aggregate type using the following functions.
 
-```
+```javascript
 aggregateAnswers: {
     type: AggregationType(AnswerType), 
     resolve: (obj) => obj.answers
@@ -31,23 +31,45 @@ in the answer type.
 
 for instance if the AnswerType had the following definition.
 
-```
+```json
 type AnswerType {
   id: ID,
   username: String,
-  value: Int!
+  usersAnswer: Int!
 }
 ```
 
 The following query would be a valid way of finding the amount of answers attributed to each user.
 
-```
+```graphql
 aggregateAnswers {
-    groupedBy{
+    groupedBy {
       username {
         keys
-        values{
+        values {
             count
+          }
+        }
+      }
+    }
+  }
+}
+
+```
+
+You can also further apply aggregations on the aggregation.
+
+```graphql
+aggregateAnswers {
+    groupedBy {
+      username {
+        keys
+        values {
+            groupedBy {
+              usersAnswer {
+                asMap
+              }
+            }
           }
         }
       }
