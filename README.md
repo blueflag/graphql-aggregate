@@ -31,7 +31,7 @@ in the answer type.
 
 for instance if the AnswerType had the following definition.
 
-```json
+```
 type AnswerType {
   id: ID,
   username: String,
