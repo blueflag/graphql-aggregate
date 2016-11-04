@@ -85,4 +85,45 @@ aggregateAnswers {
 
 ```
 
+### Supplied Schema
+
+Aggregation types will be named based on the type the were created from, for instance if our type was named `Answer` our aggregation type would be named `AnswerAggregation`.
+
+####Fields Provided
+
+The follow is the fields that are provided via the api, the best way of seeing exactly how it works is by using GraphiQL to investigate the fields.
+
+The Aggregation provides fields dependent on the type that it is created with, this allows a more natural syntax then using arguments to lookup preknown values, and allows us to use graphql type checking simply on the queries.
+
+```
+Aggregation<T> : {
+  values: [T],                        // Values in aggregation.
+  count: Int,                         // Amount of values in aggregation.
+  groupedBy: GroupedByAggregation<T> : { 
+    fields in T...: KeyedList: {
+      asMap: Scaler                   //Map of key/values.
+      keys: List<String>              //List of keys in order.
+      values: Aggregation<T>          //Returns the aggregation functions to be used on the values of the current aggregation
+    },
+  },
+  filter: FilterAggregation<T> : {    //Filter aggregation methods
+    int fields in T...args:(gt: int, lt: int, gte: int, equal int): Aggregation<T>
+    string fields in T...args:(gt: string, lt: string, gte: string, equal string): Aggregation<T>
+  },
+  sum: {
+    float or int fields in T...: int // sum of the all the values in the field.
+  },
+  average: {
+    float or int fields in T...: int // average of the all the values in the field.
+  },
+  min: {
+    float or int fields in T...: int // minimum value in the field.
+  },
+  max: {
+    float or int fields in T...: int // maximum value in the field.
+  }
+}
+
+```
+
 

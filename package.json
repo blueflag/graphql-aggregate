@@ -1,7 +1,7 @@
 {
   "name": "graphql-aggregate",
   "version": "0.0.1",
-  "description": "Aggregation functions for graphql",
+  "description": "Aggregation functions for lists in graphql",
   "main": "index.js",
   "scripts": {
     "test": "npm run test-jasmine-coverage",
