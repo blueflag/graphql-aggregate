@@ -11,7 +11,7 @@ import {GraphQLList,
     GraphQLInt,
     GraphQLFieldConfigMap,
     GraphQLInputObjectType,
-    GraphQLFieldConfigMapThunk} from 'graphql'
+    GraphQLFieldConfigMapThunk} from 'graphql';
 
 const GeneralType =  new GraphQLScalarType({
     name: 'GeneralType',
@@ -284,6 +284,25 @@ export function AggregationType(type: GraphQLObjectType): GraphQLObjectType {
                     resolve: (obj: Array<*>): number => obj.length
 
                 },
+                first: {
+                    description: `Return the first item`,
+                    type: type,
+                    resolve: (obj: Array<*>): * => fromJS(obj).first()
+                },
+                last: {
+                    description: `Return the last item`,
+                    type: type,
+                    resolve: (obj: Array<*>): * => fromJS(obj).last()
+                },
+                reverse: {
+                    description: `Reverse the order of the list`,
+                    type: AggregationType(type),
+                    resolve: (obj: Array<*>): * => fromJS(obj).reverse()
+                },
+                //slice: {}
+                //sort: {}
+                //flattern
+                //flattern should allow a CSV to be generated.
                 groupedBy : {
                     type: new GraphQLObjectType({
                         name: `${type.name}GroupedByAggregation`,
