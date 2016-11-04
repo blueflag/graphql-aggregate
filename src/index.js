@@ -10,6 +10,7 @@ import {GraphQLList,
     GraphQLFieldConfig,
     GraphQLInt,
     GraphQLFieldConfigMap,
+    GraphQLInputObjectType,
     GraphQLFieldConfigMapThunk} from 'graphql'
 
 const GeneralType =  new GraphQLScalarType({
@@ -24,31 +25,6 @@ const imMath = require('immutable-math');
 const INT_TYPE_NAME = 'Int';
 const FLOAT_TYPE_NAME = 'Float';
 const STRING_TYPE_NAME = 'String';
-
-// var averageListTypes = {}
-// export function AverageType(type){
-//     if(!averageListTypes[type.name]){
-//         averageListTypes[type.name] = new GraphQLObjectType({
-//             name: `${type.name}Average`,
-//             fields: () => {
-//                 let types = fromJS(type._typeConfig.fields())
-//                             .reduce((resultFields, field, key) => {
-//                                 return resultFields.set(key, Map({
-//                                     type: GeneralType,
-//                                     resolve: (obj) => {
-//                                         return obj.map(ii => {
-//                                             return ii .reduce((rr, jj) => rr + jj.get(key), 0)
-//                                         })
-//                                     }
-//                                 }))
-//                             }, Map())
-//                 return types.toJS();
-//             }
-//         });
-//     }
-//     return averageListTypes[type.name]
-// }
-
 
 /**
  * A list that has an associated group of keys,
@@ -93,56 +69,6 @@ export function KeyedList(type: GraphQLOutputType): GraphQLObjectType{
     return keyedListTypes[type.name]
 }
 
-/**
- * This is going to get hectic, but we are going to have one of these for each field on the type... I think
- */
-// var filterFuncTypes = {};
-// export function FilterFunctions(type, field){
-//     if(!filterFuncTypes[type.name]){
-//         filterFuncTypes[type.name] = {};
-//     }
-//     if(!filterFuncTypes[type.name][field]){
-//         filterFuncTypes[type.name][field] = new GraphQLObjectType({
-//             name: `${field}${type.name}FilterFunctions`,
-//             description: `Preform function to filter ${type.name} , ${field}`,
-//             fields: () => ({
-//                 gt : {
-//                     description: `List of ${type.name}`,
-//                     type: new GraphQLList(type),
-//                     resolve: (obj) => obj
-//                 },
-//                 lt: {
-
-//                 },
-//                 equal : {
-
-//                 }
-//             })
-//         })
-//     }
-//     return filterFuncTypes[type.name][field];
-// }
-
-// const filterFunctions = new GraphQLObjectType({
-//     name: `FilterFunctions`,
-//     description: `Preform function to filter`,
-//     fields: () => ({
-//         gt : {
-//             description: `List of ${type.name}`,
-//             type: new GraphQLList(type),
-//             args:{
-
-//             }
-//             resolve: (obj) => obj.get('values').filter(v => v.get(obj.get(obj.filterType)))
-//         },
-//         lt: {
-
-//         },
-//         equal : {
-
-//         }
-//     })
-// });
 
 /*
 * Checks if a Map<GraphQLFieldConfig> from a graphql schema is a float
@@ -179,7 +105,7 @@ function isString(field: Map<string, *>): boolean {
 //fieldResolver resolver for the type that we are creating the filds for.
 function CreateFields(type: GraphQLOutputType,
         returnType: GraphQLOutputType, 
-        resolver: (fieldResolver: * , key: string, obj: *) => GraphQLFieldConfig,
+        resolver: (fieldResolver: * , key: string, obj: *, field: Map<string,*>) => GraphQLFieldConfig,
         typeCheck: (field: GraphQLFieldConfig) => boolean
     ): GraphQLFieldConfigMap {
 
@@ -189,20 +115,103 @@ function CreateFields(type: GraphQLOutputType,
             if(typeCheck(field)){
                 return resultFields.set(key, Map({
                     type: returnType,
-                    resolve: (obj): GraphQLFieldConfig => { return resolver(field.get('resolve'), key, obj) }
+                    resolve: (obj): GraphQLFieldConfig => { return resolver(field.get('resolve'), key, obj, field) }
                 }))
             }
             return resultFields;
         }, Map()).toJS();
 }
 
-// field, key
+const FilterIntOperations = new GraphQLInputObjectType({
+    name: "FilterIntOperations",
+    description: 'Filter operations for int',
+    fields : () =>  filterIntArgs
+})
+
+
+var filterIntArgs = {
+    gt: {
+        type: GraphQLInt,
+        description: 'Filter only values greater then value.'
+    },
+    lt: {
+        type: GraphQLInt,
+        description: 'Filter only values less then value.' 
+    },
+    gte: {
+        type: GraphQLInt,
+        description: 'Filter only values greater then or equal to value' 
+    }, 
+    lte: {
+        type: GraphQLInt,
+        description: 'Filter only values less then or equal to value' 
+    }, 
+    equal: {
+        type: GraphQLInt,
+        description: 'Filter only values equal to value.' 
+    }, 
+    not: {
+        type: FilterIntOperations,
+        description: 'Filter only values equal to value.' 
+    }, 
+    or: {
+        type: new GraphQLList(FilterIntOperations),
+        description: 'Filter only values equal to value.'
+    }
+}
+
+const filterFunctions = {
+    gt: ({gt}, value: number ): boolean => {
+        return gt == null || gt < value;
+    },
+    lt: ({lt}, value: number ): boolean => {
+        return lt == null || lt > value;
+    },
+    gte: ({gte}, value: number ): boolean => {
+        return gte == null || gte <= value;
+    },
+    lte: ({lte}, value: number ): boolean => {
+        return lte == null || lte >= value;
+    },
+    equal: ({equal}, value: number ): boolean => {
+        return equal == null || equal === value;
+    },
+    not: ({not}, value: number): boolean => {
+        return not == null || !runFilterFunction(not, value)
+    },
+    or:  ({or}, value: number): boolean => {
+        return true //or != null && //runFilterFunction(not, value)
+    }
+
+}
+
+var runFilterFunction = (field) => (args, ii) => {
+    return filterFunctions.gt(args, field.get('resolve')(ii)) 
+        && filterFunctions.lt(args, field.get('resolve')(ii)) 
+        && filterFunctions.gte(args, field.get('resolve')(ii)) 
+        && filterFunctions.lte(args, field.get('resolve')(ii)) 
+        && filterFunctions.equal(args, field.get('resolve')(ii)) 
+        && filterFunctions.not(args, field.get('resolve')(ii)) 
+        && filterFunctions.or(args, field.get('resolve')(ii));
+}
+
+var resolveIntFilter = (field) => (obj, args) => {
+    return fromJS(obj).filter(ii => runFilterFunction(field)(args, ii)).toJS()
+}
+
+function filterFieldConfigFactory(fields, field: Map<string, *>, key: string, type: GraphQLObjectType): GraphQLFieldConfig{
+    return fields.set(key, Map({
+        type: AggregationType(type),
+        args: filterIntArgs,
+        resolve: resolveIntFilter(field),
+        description: `Filters ${key} via args.`
+    }))
+}
 
 /**
- * Creates an AggregationType with a buvbased on the GraphQLOutputType requested,
- * Objects that wished to be resolved this way must be a Array of the requested type.
- *
- *   =
+ * Creates an AggregationType with it based on the GraphQLOutputType requested,
+ * Objects that wish to be resolved this way must be a Array of the requested type.
+ * 
  * @param {GraphQLOutputType} type - type to create the aggregaion functions for
  */
 
@@ -241,6 +250,21 @@ export function AggregationType(type: GraphQLObjectType): GraphQLObjectType {
                     description: `Preform a groupBy aggregation method on ${type.name}`,
                     resolve: (obj) => obj
                 },
+                filter: {
+                    description: `Preform filter aggregation methods on ${type.name}`,
+                    type: new GraphQLObjectType({
+                        name: `${type.name}FilterAggregation`,
+                        description: `Preform filter aggregation methods on ${type.name}`,
+                        args: filterIntArgs,
+                        fields: () => {
+                            return fromJS(type._typeConfig.fields())
+                                .reduce((fields, typeField, key)=>{
+                                    return filterFieldConfigFactory(fields, typeField, key, type)
+                                }, Map()).toJS()
+                        }
+                    }),
+                    resolve: (obj) => obj
+                },
                 sum: { 
                     description: `Perform sum on ${type.name}`,
                     type: new GraphQLObjectType({
@@ -267,6 +291,38 @@ export function AggregationType(type: GraphQLObjectType): GraphQLObjectType {
                                 GraphQLFloat, 
                                 (fieldResolver: * , key: string, obj: *) => {
                                     return fromJS(obj).update(imMath.averageBy(ii => fieldResolver(ii)))
+                                }, 
+                                (field) => isFloat(field) || isInt(field))
+                        }
+                    }),
+                    resolve: (obj) => obj
+                },
+                min: {
+                    description: `Returns the average of a field on ${type.name}`,
+                    type: new GraphQLObjectType({
+                        name: `${type.name}Min`,
+                        description: `Perform averages on ${type.name}`,
+                        fields: () => {
+                            return CreateFields(type, 
+                                GraphQLFloat, 
+                                (fieldResolver: * , key: string, obj: *) => {
+                                    return fromJS(obj).update(imMath.minBy(ii => fieldResolver(ii)))
+                                }, 
+                                (field) => isFloat(field) || isInt(field))
+                        }
+                    }),
+                    resolve: (obj) => obj
+                },
+                max: {
+                    description: `Returns the average of a field on ${type.name}`,
+                    type: new GraphQLObjectType({
+                        name: `${type.name}Max`,
+                        description: `Perform averages on ${type.name}`,
+                        fields: () => {
+                            return CreateFields(type, 
+                                GraphQLFloat, 
+                                (fieldResolver: * , key: string, obj: *) => {
+                                    return fromJS(obj).update(imMath.maxBy(ii => fieldResolver(ii)))
                                 }, 
                                 (field) => isFloat(field) || isInt(field))
                         }
