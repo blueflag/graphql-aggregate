@@ -160,6 +160,46 @@ var filterIntArgs = {
     }
 }
 
+
+const FilterStringOperations = new GraphQLInputObjectType({
+    name: "FilterStringOperations",
+    description: 'Filter operations for strings',
+    fields : () =>  filterStringArgs
+})
+
+
+var filterStringArgs = {
+    gt: {
+        type: GraphQLString,
+        description: 'Filter only values greater then value.'
+    },
+    lt: {
+        type: GraphQLString,
+        description: 'Filter only values less then value.' 
+    },
+    gte: {
+        type: GraphQLString,
+        description: 'Filter only values greater then or equal to value' 
+    }, 
+    lte: {
+        type: GraphQLString,
+        description: 'Filter only values less then or equal to value' 
+    }, 
+    equal: {
+        type: GraphQLString,
+        description: 'Filter only values equal to value.' 
+    }, 
+    not: {
+        type: FilterStringOperations,
+        description: 'Filter only values equal to value.' 
+    }, 
+    or: {
+        type: new GraphQLList(FilterStringOperations),
+        description: 'Filter only values equal to value.'
+    }
+}
+
+
 const filterFunctions = {
     gt: ({gt}, value: number ): boolean => {
         return gt == null || gt < value;
@@ -200,12 +240,23 @@ var resolveIntFilter = (field) => (obj, args) => {
 }
 
 function filterFieldConfigFactory(fields, field: Map<string, *>, key: string, type: GraphQLObjectType): GraphQLFieldConfig{
-    return fields.set(key, Map({
-        type: AggregationType(type),
-        args: filterIntArgs,
-        resolve: resolveIntFilter(field),
-        description: `Filters ${key} via args.`
-    }))
+    if(isInt(field)){
+        return fields.set(key, Map({
+            type: AggregationType(type),
+            args: filterIntArgs,
+            resolve: resolveIntFilter(field),
+            description: `Filters ${key} via args.`
+        }))
+    }
+    if(isString(field)){
+        return fields.set(key, Map({
+            type: AggregationType(type),
+            args: filterStringArgs,
+            resolve: resolveIntFilter(field),
+            description: `Filters ${key} via args.`
+        }))
+    }
+    return fields;
 }
 
 /**
