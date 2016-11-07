@@ -1,5 +1,7 @@
 # graphql-aggregate
 
+[![Coverage Status](https://coveralls.io/repos/github/blueflag/graphql-aggregate/badge.svg?branch=master)](https://coveralls.io/github/blueflag/graphql-aggregate?branch=master)
+
 Generates an aggregation schema for graphql that can be used to perform aggregation functions 
 via a graphql query on Arrays of GraphQL types. 
 
