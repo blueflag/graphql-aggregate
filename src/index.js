@@ -45,12 +45,12 @@ export function KeyedList(type: GraphQLOutputType): GraphQLObjectType{
                 asMap : {
                     type: GeneralType,
                     description: `Return an unstructed map`,
-                    resolve: (obj) => obj.toJS()
+                    resolve: (obj) => obj
                 }, 
                 keys : {
                     type: new GraphQLList(GraphQLString),
                     description: `Keys after aggregation`,
-                    resolve: (obj) => obj
+                    resolve: (obj) => fromJS(obj)
                         .keySeq()
                         .toJS()
                 },
@@ -58,7 +58,7 @@ export function KeyedList(type: GraphQLOutputType): GraphQLObjectType{
                     type: new GraphQLList(AggregationType(type)),
                     description:   `Values after aggregation ${type.name}`,
                     resolve: (obj) => {
-                        return obj
+                        return fromJS(obj)
                             .valueSeq()
                             .toJS()
                     }

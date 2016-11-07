@@ -44,14 +44,14 @@ describe('KeyedList', () => {
                 })
             })
             var keyedList = KeyedList(testType);
-            expect(keyedList._typeConfig.fields().asMap.resolve(fromJS({
+            expect(keyedList._typeConfig.fields().asMap.resolve({
                 'test1': {
                     'id' : "test1"
                 }, 
                 'test2': {
                     'id' : "test1"
                 }
-            })))
+            }))
             .toEqual({
                 'test1': {
                     'id' : "test1"
