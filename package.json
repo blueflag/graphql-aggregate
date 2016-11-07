@@ -21,11 +21,16 @@
   "homepage": "https://github.com/blueflag/graphql-aggregate#readme",
   "devDependencies": {
     "babel-cli": "^6.18.0",
+    "babel-register": "^6.18.0",
     "eslint-config-blueflag": "^0.1.0",
-    "flow-bin": "^0.34.0"
+    "flow-bin": "^0.34.0",
+    "jasmine": "^2.5.2",
+    "jasmine-reporters": "^2.2.0",
+    "nyc": "^8.4.0"
   },
   "dependencies": {
     "babel-preset-blueflag": "0.0.1",
+    "babel-register": "^6.18.0",
     "graphql": "^0.7.2",
     "immutable": "^3.8.1",
     "immutable-math": "^0.1.2"

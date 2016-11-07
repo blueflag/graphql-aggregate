@@ -32,7 +32,7 @@ aggregateAnswers: {
 }
 ``` 
 
-after this is done, the schema will allow the user to aggregate using the fields 
+after this is done, the schema will allow the user to aggregate tusing the fields 
 in the answer type.
 
 for instance if the AnswerType had the following definition.
@@ -127,3 +127,6 @@ Aggregation<T> : {
 ```
 
 
+###TODO:
+
+* Currently only works if resolvers are defined, defaults have to be defined.
