@@ -2,8 +2,9 @@
 import {isFloat, 
         isInt,
         isString, 
-        AggregationType} from '../index.js';
-import {fromJS} from 'immutable'
+        AggregationType, 
+        KeyedList} from '../index.js';
+import {fromJS, Map} from 'immutable'
 import {GraphQLFloat,
         GraphQLInt, 
         GraphQLString, 
@@ -26,6 +27,112 @@ describe('TypeTests', () => {
         });
     });
 });
+
+describe('KeyedList', () => {
+    describe('asMap', () => {
+        it('Returns a map of the values', () => {
+
+            var testType = new GraphQLObjectType({
+                name: 'KeyListAsMapTest',
+                fields: () => ({
+                    id: {
+                        type: GraphQLString
+                    },
+                    name: {
+                        type: GraphQLString
+                    }
+                })
+            })
+            var keyedList = KeyedList(testType);
+            expect(keyedList._typeConfig.fields().asMap.resolve(fromJS({
+                'test1': {
+                    'id' : "test1"
+                }, 
+                'test2': {
+                    'id' : "test1"
+                }
+            })))
+            .toEqual({
+                'test1': {
+                    'id' : "test1"
+                }, 
+                'test2': {
+                    'id' : "test1"
+                } 
+            })
+        })
+    });
+
+
+    describe('keys', () => {
+        it('Returns a list of the keys after aggregation', () => {
+
+            var testType = new GraphQLObjectType({
+                name: 'KeyListAsMapTest',
+                fields: () => ({
+                    id: {
+                        type: GraphQLString
+                    },
+                    name: {
+                        type: GraphQLString
+                    }
+                })
+            })
+            var keyedList = KeyedList(testType);
+            expect(keyedList._typeConfig.fields().keys.resolve(fromJS({
+                'test1': {
+                    'id' : "test1"
+                }, 
+                'test2': {
+                    'id' : "test1"
+                }
+            })))
+            .toEqual([
+                'test1', 
+                'test2'
+            ])
+        })
+    });
+
+    describe('values', () => {
+        it('Returns the values in arrays', () => {
+            var testType = new GraphQLObjectType({
+                name: 'KeyListAsMapTest',
+                fields: () => ({
+                    id: {
+                        type: GraphQLString
+                    },
+                    name: {
+                        type: GraphQLString
+                    }
+                })
+            })
+
+            var keyedList = KeyedList(testType);
+            expect(keyedList._typeConfig.fields().values.resolve(Map({
+                'test1': {
+                    'id' : "test1",
+                    'name' : "paul"
+                }, 
+                'test2': {
+                    'id' : "test1",
+                    'name' : "paul"
+                }
+            })))
+            .toEqual([
+                {
+                    'id' : "test1",
+                    'name' : "paul"
+                }, 
+                {
+                    'id' : "test1",
+                    'name' : "paul"
+                }
+            ])
+        })
+    })
+});
+
 
 describe('AggregationType', () => {
     describe('values', () => {
@@ -105,6 +212,33 @@ describe('AggregationType', () => {
             }])).toEqual({
                 id: 'test',
                 name: 'John',
+            });
+        });
+    });
+
+    describe('last', () => {
+        it('Returns the last item in the array', () => {
+            var testType = new GraphQLObjectType({
+                name: 'TestType',
+                fields: () => ({
+                    id: {
+                        type: GraphQLString
+                    },
+                    name: {
+                        type: GraphQLString
+                    }
+                })
+            })
+            var myAggregation = AggregationType(testType);
+            expect(myAggregation._typeConfig.fields().last.resolve([{
+                id: 'test',
+                name: 'John',
+            },{  
+                id: 'test2',
+                name: 'Richard',
+            }])).toEqual({
+                id: 'test2',
+                name: 'Richard',
             });
         });
     });
