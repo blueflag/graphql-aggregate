@@ -102,6 +102,14 @@ export function isString(field: Map<string, *>): boolean {
     return field.get('type').name === STRING_TYPE_NAME
 }
 
+/**
+ * Resolves fields using custom resolver or reverts to using obj.key
+ */
+
+var fieldResolver = (field, key) => (obj) => {
+    return field.get('resolve', (obj)=> obj[key])(obj)
+}
+
 //fieldResolver resolver for the type that we are creating the filds for.
 function CreateFields(type: GraphQLOutputType,
         returnType: GraphQLOutputType, 
@@ -117,7 +125,7 @@ function CreateFields(type: GraphQLOutputType,
                 return resultFields.set(key, Map({
                     type: returnType,
                     resolve: (obj): GraphQLFieldConfig => {
-                        return resolver(field.get('resolve'), key, obj, field) 
+                        return resolver(fieldResolver(field,key),key, obj, field) 
                     }
                 }))
             }
@@ -203,7 +211,7 @@ var filterStringArgs = {
 }
 
 
-const filterFunctions = (field) => ({
+const filterFunctions = (field, key) => ({
     gt: ({gt}, value: number ): boolean => {
         return gt == null || gt < value;
     },
@@ -220,7 +228,7 @@ const filterFunctions = (field) => ({
         return equal == null || equal === value;
     },
     not: ({not}, value: *, obj: *): boolean => {
-        return not == null || !runFilterFunction(field)(not, obj)
+        return not == null || !runFilterFunction(field, key)(not, obj)
     },
     // or:  ({or}, value: number): boolean => {
     //     return true //or != null && //runFilterFunction(not, value)
@@ -228,18 +236,21 @@ const filterFunctions = (field) => ({
 
 })
 
-var runFilterFunction = (field) => (args, ii) => {
-    return filterFunctions(field).gt(args, field.get('resolve')(ii)) 
-        && filterFunctions(field).lt(args, field.get('resolve')(ii)) 
-        && filterFunctions(field).gte(args, field.get('resolve')(ii)) 
-        && filterFunctions(field).lte(args, field.get('resolve')(ii)) 
-        && filterFunctions(field).equal(args, field.get('resolve')(ii)) 
-        && filterFunctions(field).not(args, field.get('resolve')(ii), ii) 
-        //&& filterFunctions.or(args, field.get('resolve')(ii));
+var runFilterFunction = (field, key) => (args, ii) => {
+    let {gt, lt, gte, lte, equal, not} = filterFunctions(field, key);
+    let resolver = fieldResolver(field, key);
+
+    return gt(args, resolver(ii)) 
+            && lt(args, resolver(ii)) 
+            && gte(args, resolver(ii)) 
+            && lte(args, resolver(ii)) 
+            && equal(args, resolver(ii)) 
+            && not(args, resolver(ii), ii) 
+    //&& filterFunctions.or(args, field.get('resolve')(ii));
 }
 
-var resolveIntFilter = (field) => (obj, args) => {
-    return fromJS(obj).filter(ii => runFilterFunction(field)(args, ii.toJS())).toJS()
+var resolveIntFilter = (field, key) => (obj, args) => {
+    return fromJS(obj).filter(ii => runFilterFunction(field, key)(args, ii.toJS())).toJS()
 }
 
 function filterFieldConfigFactory(fields, field: Map<string, *>, key: string, type: GraphQLObjectType): GraphQLFieldConfig{
@@ -247,7 +258,7 @@ function filterFieldConfigFactory(fields, field: Map<string, *>, key: string, ty
         return fields.set(key, Map({
             type: AggregationType(type),
             args: filterIntArgs,
-            resolve: resolveIntFilter(field),
+            resolve: resolveIntFilter(field, key),
             description: `Filters ${key} via args.`
         }))
     }
@@ -255,7 +266,7 @@ function filterFieldConfigFactory(fields, field: Map<string, *>, key: string, ty
         return fields.set(key, Map({
             type: AggregationType(type),
             args: filterStringArgs,
-            resolve: resolveIntFilter(field),
+            resolve: resolveIntFilter(field, key),
             description: `Filters ${key} via args.`
         }))
     }
