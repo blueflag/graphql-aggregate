@@ -1,6 +1,6 @@
 {
   "name": "graphql-aggregate",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Aggregation functions for lists in graphql",
   "main": "index.js",
   "scripts": {
