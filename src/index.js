@@ -45,7 +45,7 @@ export function KeyedList(type: GraphQLOutputType): GraphQLObjectType{
                 asMap : {
                     type: GeneralType,
                     description: `Return an unstructed map`,
-                    resolve: (obj) => obj
+                    resolve: (obj) => obj.toJS()
                 }, 
                 keys : {
                     type: new GraphQLList(GraphQLString),
@@ -203,7 +203,7 @@ var filterStringArgs = {
 }
 
 
-const filterFunctions = {
+const filterFunctions = (field) => ({
     gt: ({gt}, value: number ): boolean => {
         return gt == null || gt < value;
     },
@@ -219,27 +219,27 @@ const filterFunctions = {
     equal: ({equal}, value: number ): boolean => {
         return equal == null || equal === value;
     },
-    not: ({not}, value: number): boolean => {
-        return not == null || !runFilterFunction(not, value)
+    not: ({not}, value: *, obj: *): boolean => {
+        return not == null || !runFilterFunction(field)(not, obj)
     },
-    or:  ({or}, value: number): boolean => {
-        return true //or != null && //runFilterFunction(not, value)
-    }
+    // or:  ({or}, value: number): boolean => {
+    //     return true //or != null && //runFilterFunction(not, value)
+    // }
 
-}
+})
 
 var runFilterFunction = (field) => (args, ii) => {
-    return filterFunctions.gt(args, field.get('resolve')(ii)) 
-        && filterFunctions.lt(args, field.get('resolve')(ii)) 
-        && filterFunctions.gte(args, field.get('resolve')(ii)) 
-        && filterFunctions.lte(args, field.get('resolve')(ii)) 
-        && filterFunctions.equal(args, field.get('resolve')(ii)) 
-        && filterFunctions.not(args, field.get('resolve')(ii)) 
-        && filterFunctions.or(args, field.get('resolve')(ii));
+    return filterFunctions(field).gt(args, field.get('resolve')(ii)) 
+        && filterFunctions(field).lt(args, field.get('resolve')(ii)) 
+        && filterFunctions(field).gte(args, field.get('resolve')(ii)) 
+        && filterFunctions(field).lte(args, field.get('resolve')(ii)) 
+        && filterFunctions(field).equal(args, field.get('resolve')(ii)) 
+        && filterFunctions(field).not(args, field.get('resolve')(ii), ii) 
+        //&& filterFunctions.or(args, field.get('resolve')(ii));
 }
 
 var resolveIntFilter = (field) => (obj, args) => {
-    return fromJS(obj).filter(ii => runFilterFunction(field)(args, ii)).toJS()
+    return fromJS(obj).filter(ii => runFilterFunction(field)(args, ii.toJS())).toJS()
 }
 
 function filterFieldConfigFactory(fields, field: Map<string, *>, key: string, type: GraphQLObjectType): GraphQLFieldConfig{
