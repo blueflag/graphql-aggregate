@@ -128,9 +128,4 @@ Aggregation<T> : {
   }
 }
 
-```
-
-
-###TODO:
-
-* Currently only works if resolvers are defined, defaults have to be defined.
+``` 
