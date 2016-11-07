@@ -72,7 +72,6 @@ export function KeyedList(type: GraphQLOutputType): GraphQLObjectType{
 
 /*
 * Checks if a Map<GraphQLFieldConfig> from a graphql schema is a float
-* @private
 * @params {Map} field immutable map from GraphQLFieldConfig
 * @returns {boolean} true if the field is a Float (GraphQLFloat)
 */
@@ -83,7 +82,6 @@ export function isFloat(field: Map<string, *>): boolean {
 
 /*
 * Checks if a Map<GraphQLFieldConfig> from a graphql schema is a int
-* @private
 * @params {Map} field immutable map from GraphQLFieldConfig
 * @returns {boolean} true if the field is a Int (GraphQLInt)
 */
@@ -94,7 +92,6 @@ export function isInt(field: Map<string, *>): boolean {
 /*
 * Checks if a Map<GraphQLFieldConfig> from a graphql schema is a string
 * Checks if a Map from a graphql schema is a string
-* @private
 * @returns {boolean} true if the field is a String (GraphQLString)
 */
 
