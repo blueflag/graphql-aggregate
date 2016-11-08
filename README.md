@@ -30,6 +30,7 @@ It can be turned into an aggregate type using the following `GraphQLFieldConfig`
 _see GraphQL's documentation on field configuration of the [GraphQLObjectType](http://graphql.org/graphql-js/type/#graphqlobjecttype)_
 
 ```javascript
+import {AggregationType} from 'graphql-aggregate'
 
 // Creates an AggregationType with based on the AnswerType
 // The resolver must return an Array that can be resolved into AnswerTypes
