@@ -45,12 +45,12 @@ export function KeyedList(type: GraphQLOutputType): GraphQLObjectType{
                 asMap : {
                     type: GeneralType,
                     description: `Return an unstructed map`,
-                    resolve: (obj) => obj.toJS()
+                    resolve: (obj) => obj
                 }, 
                 keys : {
                     type: new GraphQLList(GraphQLString),
                     description: `Keys after aggregation`,
-                    resolve: (obj) => obj
+                     resolve: (obj) => fromJS(obj)
                         .keySeq()
                         .toJS()
                 },
@@ -58,7 +58,7 @@ export function KeyedList(type: GraphQLOutputType): GraphQLObjectType{
                     type: new GraphQLList(AggregationType(type)),
                     description:   `Values after aggregation ${type.name}`,
                     resolve: (obj) => {
-                        return obj
+                        return fromJS(obj)
                             .valueSeq()
                             .toJS()
                     }
@@ -70,6 +70,7 @@ export function KeyedList(type: GraphQLOutputType): GraphQLObjectType{
 }
 
 
+ 
 /*
 * Checks if a Map<GraphQLFieldConfig> from a graphql schema is a float
 * @params {Map} field immutable map from GraphQLFieldConfig
@@ -290,23 +291,23 @@ export function AggregationType(type: GraphQLObjectType): GraphQLObjectType {
                     resolve: (obj: Array<*>): GraphQLList<*> => obj
                 },
                 count : {
-                    description: 'Size of the amount of items',
+                    description: 'The amount of items in the aggregaion',
                     type: GraphQLInt,
                     resolve: (obj: Array<*>): number => obj.length
 
                 },
                 first: {
-                    description: 'Return the first item',
+                    description: 'Return the first item in the aggregaion',
                     type: type,
                     resolve: (obj: Array<*>): * => fromJS(obj).first().toJS()
                 },
                 last: {
-                    description: 'Return the last item',
+                    description: 'Return the last item in the aggregaion',
                     type: type,
                     resolve: (obj: Array<*>): * => fromJS(obj).last().toJS()
                 },
                 reverse: {
-                    description: 'Reverse the order of the list',
+                    description: 'Reverse the order of the items in the aggregaion',
                     type: AggregationType(type),
                     resolve: (obj: Array<*>): * => fromJS(obj).reverse().toJS()
                 },
@@ -340,7 +341,7 @@ export function AggregationType(type: GraphQLObjectType): GraphQLObjectType {
                             )
                         }
                     }),
-                    description: `Preform a groupBy aggregation method on ${type.name}`,
+                    description: `Group items in aggregaion by the value of a field.`,
                     resolve: (obj) => obj
                 },
                 filter: {
@@ -359,7 +360,7 @@ export function AggregationType(type: GraphQLObjectType): GraphQLObjectType {
                     resolve: (obj) => obj
                 },
                 sum: { 
-                    description: `Perform sum on ${type.name}`,
+                    description: `Sum the values of a field on ${type.name}`,
                     type: new GraphQLObjectType({
                         name: `${type.name}Sum`,
                         description: `Perform sum on ${type.name}`,
@@ -391,10 +392,10 @@ export function AggregationType(type: GraphQLObjectType): GraphQLObjectType {
                     resolve: (obj) => obj
                 },
                 min: {
-                    description: `Returns the average of a field on ${type.name}`,
+                    description: `Returns the minium value of all the items on a field on ${type.name}`,
                     type: new GraphQLObjectType({
                         name: `${type.name}Min`,
-                        description: `Perform averages on ${type.name}`,
+                        description: `minium on value of a field for ${type.name}`,
                         fields: () => {
                             return CreateFields(type, 
                                 GraphQLFloat, 
@@ -407,10 +408,10 @@ export function AggregationType(type: GraphQLObjectType): GraphQLObjectType {
                     resolve: (obj) => obj
                 },
                 max: {
-                    description: `Returns the average of a field on ${type.name}`,
+                    description: `Returns the maximum value of all the items on a field on${type.name}`,
                     type: new GraphQLObjectType({
                         name: `${type.name}Max`,
-                        description: `Perform averages on ${type.name}`,
+                        description: `maximum on value of a field for ${type.name}`,
                         fields: () => {
                             return CreateFields(type, 
                                 GraphQLFloat, 
