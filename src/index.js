@@ -316,6 +316,10 @@ function filterFieldConfigFactory(fields, field: Map<string, *>, key: string, ty
     return fields;
 }
 
+function containsType(fields, typeCheck) {
+    return fromJS(fields)
+}
+
 /**
  * Creates an AggregationType with it based on the GraphQLOutputType requested,
  * Objects that wish to be resolved this way must be a Array of the requested type.
@@ -329,164 +333,177 @@ export function AggregationType(type: GraphQLObjectType): GraphQLObjectType {
         aggregationTypes[type.name] = new GraphQLObjectType({
             name: `${type.name}Aggregation`,
             description: `Preform aggregation methods on ${type.name}`,
-            fields: (): GraphQLFieldConfigMap => ({
-                values : {
-                    description: `List of ${type.name}`,
-                    type: new GraphQLList(type),
-                    resolve: (obj: Array<*>|List<*>): GraphQLList<*> => {
-                        return List(obj).toArray()
-                    }
-                },
-                count : {
-                    description: 'The amount of items in the aggregaion',
-                    type: GraphQLInt,
-                    resolve: (obj: Array<*>): number => obj.length
+            fields: (): GraphQLFieldConfigMap => {
+                let typeFields = fromJS(type._typeConfig.fields())
+                let intFields = typeFields.filter(field => isFloat(field) || isInt(field))
+                let fields = Map(
+                    {
+                        values : {
+                            description: `List of ${type.name}`,
+                            type: new GraphQLList(type),
+                            resolve: (obj: Array<*>|List<*>): GraphQLList<*> => {
+                                return List(obj).toArray()
+                            }
+                        },
+                        count : {
+                            description: 'The amount of items in the aggregaion',
+                            type: GraphQLInt,
+                            resolve: (obj: Array<*>): number => obj.length
 
-                },
-                first: {
-                    description: 'Return the first item in the aggregaion',
-                    type: type,
-                    resolve: (obj: Array<*>): * => List(obj).first()
-                },
-                last: {
-                    description: 'Return the last item in the aggregaion',
-                    type: type,
-                    resolve: (obj: Array<*>): * =>  List(obj).last()
-                },
-                reverse: {
-                    description: 'Reverse the order of the items in the aggregaion',
-                    type: AggregationType(type),
-                    resolve: (obj: Array<*>): * => List(obj).reverse()
-                },
-                //slice: {}
-                // sort: {
-                //     description: 'Sort the list via the parameter',
-                //     fields: () =>
-                //         CreateFields(type, 
-                //             AggregationType(type),
-                //             (fieldResolver: * , key: string, obj: *) => {
-                //                 return fromJS(obj).sort((a, b) => {
-                //                     return fieldResolver(a) > fieldResolver(b)
-                //                 })
-                //             }, 
-                //             () => true)
-                // },
-                //flattern
-                //flattern should allow a CSV to be generated.
-                groupedBy : {
-                    type: new GraphQLObjectType({
-                        name: `${type.name}GroupedByAggregation`,
-                        description: `Preform groupBy aggregation methods on ${type.name}`,
-                        fields: () => {
+                        },
+                        first: {
+                            description: 'Return the first item in the aggregaion',
+                            type: type,
+                            resolve: (obj: Array<*>): * => List(obj).first()
+                        },
+                        last: {
+                            description: 'Return the last item in the aggregaion',
+                            type: type,
+                            resolve: (obj: Array<*>): * =>  List(obj).last()
+                        },
+                        reverse: {
+                            description: 'Reverse the order of the items in the aggregaion',
+                            type: AggregationType(type),
+                            resolve: (obj: Array<*>): * => List(obj).reverse()
+                        },
+                        //slice: {}
+                        // sort: {
+                        //     description: 'Sort the list via the parameter',
+                        //     fields: () =>
+                        //         CreateFields(type, 
+                        //             AggregationType(type),
+                        //             (fieldResolver: * , key: string, obj: *) => {
+                        //                 return fromJS(obj).sort((a, b) => {
+                        //                     return fieldResolver(a) > fieldResolver(b)
+                        //                 })
+                        //             }, 
+                        //             () => true)
+                        // },
+                        //flattern
+                        //flattern should allow a CSV to be generated.
+                        groupedBy : {
+                            type: new GraphQLObjectType({
+                                name: `${type.name}GroupedByAggregation`,
+                                description: `Preform groupBy aggregation methods on ${type.name}`,
+                                fields: () => {
 
-                            return CreateFields(type, 
-                                KeyedList(type), 
-                                (fieldResolver: * , key: string, obj: *) => {
-                                    return List(obj).groupBy(ii => fieldResolver(ii)).map(ii => ii.toArray())
-                                }, 
-                                () => true 
-                            )
+                                    return CreateFields(type, 
+                                        KeyedList(type), 
+                                        (fieldResolver: * , key: string, obj: *) => {
+                                            return List(obj).groupBy(ii => fieldResolver(ii)).map(ii => ii.toArray())
+                                        }, 
+                                        () => true 
+                                    )
+                                }
+                            }),
+                            description: `Group items in aggregaion by the value of a field.`,
+                            resolve: (obj) => obj
+                        },
+                        filter: {
+                            description: `Preform filter aggregation methods on ${type.name}`,
+                            type: new GraphQLObjectType({
+                                name: `${type.name}FilterAggregation`,
+                                description: `Preform filter aggregation methods on ${type.name}`,
+                                args: filterIntArgs,
+                                fields: () => {
+                                    return fromJS(type._typeConfig.fields())
+                                        .reduce((fields, typeField, key) => {
+                                            return filterFieldConfigFactory(fields, typeField, key, type)
+                                        }, Map()).toJS()
+                                }
+                            }),
+                            resolve: (obj) => obj
                         }
-                    }),
-                    description: `Group items in aggregaion by the value of a field.`,
-                    resolve: (obj) => obj
-                },
-                filter: {
-                    description: `Preform filter aggregation methods on ${type.name}`,
-                    type: new GraphQLObjectType({
-                        name: `${type.name}FilterAggregation`,
-                        description: `Preform filter aggregation methods on ${type.name}`,
-                        args: filterIntArgs,
-                        fields: () => {
-                            return fromJS(type._typeConfig.fields())
-                                .reduce((fields, typeField, key) => {
-                                    return filterFieldConfigFactory(fields, typeField, key, type)
-                                }, Map()).toJS()
+                    })                    
+                    
+                if(intFields.count() > 0){
+                    // add integer operations
+                    fields.merge(
+                        {
+                        sum: { 
+                            description: `Sum the values of a field on ${type.name}`,
+                            type: new GraphQLObjectType({
+                                name: `${type.name}Sum`,
+                                description: `Perform sum on ${type.name}`,
+                                fields: () => {
+                                    return CreateFields(type, 
+                                        GraphQLFloat, 
+                                        (fieldResolver: * , key: string, obj: *) => {
+                                            return List(obj).update(imMath.sumBy(ii => fieldResolver(ii)))
+                                        }, 
+                                        (field) => isFloat(field) || isInt(field))
+                                }
+                            }),
+                            resolve: (obj) => obj
+                        },
+                        average: {
+                            description: `Returns the average of a field on ${type.name}`,
+                            type: new GraphQLObjectType({
+                                name: `${type.name}Average`,
+                                description: `Perform averages on ${type.name}`,
+                                fields: () => {
+                                    return CreateFields(type, 
+                                        GraphQLFloat, 
+                                        (fieldResolver: * , key: string, obj: *) => {
+                                            return List(obj).update(imMath.averageBy(ii => fieldResolver(ii)))
+                                        }, 
+                                        (field) => isFloat(field) || isInt(field))
+                                }
+                            }),
+                            resolve: (obj) => obj
+                        },
+                        median: {
+                            description: `Returns the median value of a field on ${type.name}`,
+                            type: new GraphQLObjectType({
+                                name: `${type.name}Median`,
+                                description: `Perform median calculation on ${type.name}`,
+                                fields: () => {
+                                    return CreateFields(type, 
+                                        GraphQLFloat, 
+                                        (fieldResolver: * , key: string, obj: *) => {
+                                            return List(obj).update(imMath.medianBy(ii => fieldResolver(ii)))
+                                        }, 
+                                        (field) => isFloat(field) || isInt(field))
+                                }
+                            }),
+                            resolve: (obj) => obj  
+                        },
+                        min: {
+                            description: `Returns the minium value of all the items on a field on ${type.name}`,
+                            type: new GraphQLObjectType({
+                                name: `${type.name}Min`,
+                                description: `minium on value of a field for ${type.name}`,
+                                fields: () => {
+                                    return CreateFields(type, 
+                                        GraphQLFloat, 
+                                        (fieldResolver: * , key: string, obj: *) => {
+                                            return List(obj).update(imMath.minBy(ii => fieldResolver(ii)))
+                                        }, 
+                                        (field) => isFloat(field) || isInt(field))
+                                }
+                            }),
+                            resolve: (obj) => obj
+                        },
+                        max: {
+                            description: `Returns the maximum value of all the items on a field on${type.name}`,
+                            type: new GraphQLObjectType({
+                                name: `${type.name}Max`,
+                                description: `maximum on value of a field for ${type.name}`,
+                                fields: () => {
+                                    return CreateFields(type, 
+                                        GraphQLFloat, 
+                                        (fieldResolver: * , key: string, obj: *) => {
+                                            return List(obj).update(imMath.maxBy(ii => fieldResolver(ii)))
+                                        }, 
+                                        (field) => isFloat(field) || isInt(field))
+                                }
+                            }),
+                            resolve: (obj) => obj
                         }
-                    }),
-                    resolve: (obj) => obj
-                },
-                sum: { 
-                    description: `Sum the values of a field on ${type.name}`,
-                    type: new GraphQLObjectType({
-                        name: `${type.name}Sum`,
-                        description: `Perform sum on ${type.name}`,
-                        fields: () => {
-                            return CreateFields(type, 
-                                GraphQLFloat, 
-                                (fieldResolver: * , key: string, obj: *) => {
-                                    return List(obj).update(imMath.sumBy(ii => fieldResolver(ii)))
-                                }, 
-                                (field) => isFloat(field) || isInt(field))
-                        }
-                    }),
-                    resolve: (obj) => obj
-                },
-                average: {
-                    description: `Returns the average of a field on ${type.name}`,
-                    type: new GraphQLObjectType({
-                        name: `${type.name}Average`,
-                        description: `Perform averages on ${type.name}`,
-                        fields: () => {
-                            return CreateFields(type, 
-                                GraphQLFloat, 
-                                (fieldResolver: * , key: string, obj: *) => {
-                                    return List(obj).update(imMath.averageBy(ii => fieldResolver(ii)))
-                                }, 
-                                (field) => isFloat(field) || isInt(field))
-                        }
-                    }),
-                    resolve: (obj) => obj
-                },
-                median: {
-                    description: `Returns the median value of a field on ${type.name}`,
-                    type: new GraphQLObjectType({
-                        name: `${type.name}Median`,
-                        description: `Perform median calculation on ${type.name}`,
-                        fields: () => {
-                            return CreateFields(type, 
-                                GraphQLFloat, 
-                                (fieldResolver: * , key: string, obj: *) => {
-                                    return List(obj).update(imMath.medianBy(ii => fieldResolver(ii)))
-                                }, 
-                                (field) => isFloat(field) || isInt(field))
-                        }
-                    }),
-                    resolve: (obj) => obj  
-                },
-                min: {
-                    description: `Returns the minium value of all the items on a field on ${type.name}`,
-                    type: new GraphQLObjectType({
-                        name: `${type.name}Min`,
-                        description: `minium on value of a field for ${type.name}`,
-                        fields: () => {
-                            return CreateFields(type, 
-                                GraphQLFloat, 
-                                (fieldResolver: * , key: string, obj: *) => {
-                                    return List(obj).update(imMath.minBy(ii => fieldResolver(ii)))
-                                }, 
-                                (field) => isFloat(field) || isInt(field))
-                        }
-                    }),
-                    resolve: (obj) => obj
-                },
-                max: {
-                    description: `Returns the maximum value of all the items on a field on${type.name}`,
-                    type: new GraphQLObjectType({
-                        name: `${type.name}Max`,
-                        description: `maximum on value of a field for ${type.name}`,
-                        fields: () => {
-                            return CreateFields(type, 
-                                GraphQLFloat, 
-                                (fieldResolver: * , key: string, obj: *) => {
-                                    return List(obj).update(imMath.maxBy(ii => fieldResolver(ii)))
-                                }, 
-                                (field) => isFloat(field) || isInt(field))
-                        }
-                    }),
-                    resolve: (obj) => obj
+                    }, fields)
                 }
-            })
+                return fields.toObject();
+            }
         })
     }
     return aggregationTypes[type.name];
