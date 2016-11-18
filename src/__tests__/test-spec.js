@@ -44,14 +44,14 @@ describe('KeyedList', () => {
                 })
             })
             var keyedList = KeyedList(testType);
-            expect(keyedList._typeConfig.fields().asMap.resolve(fromJS({
+            expect(keyedList._typeConfig.fields().asMap.resolve({
                 'test1': {
                     'id' : "test1"
                 }, 
                 'test2': {
                     'id' : "test1"
                 }
-            })))
+            }))
             .toEqual({
                 'test1': {
                     'id' : "test1"
@@ -205,13 +205,13 @@ describe('AggregationType', () => {
             var myAggregation = AggregationType(testType);
             expect(myAggregation._typeConfig.fields().first.resolve([{
                 id: 'test',
-                name: 'John',
+                name: 'John'
             },{  
                 id: 'test2',
-                name: 'Richard',
+                name: 'Richard'
             }])).toEqual({
                 id: 'test',
-                name: 'John',
+                name: 'John'
             });
         });
     });
@@ -257,19 +257,20 @@ describe('AggregationType', () => {
                 })
             })
             var myAggregation = AggregationType(testType);
-            expect(myAggregation._typeConfig.fields().reverse.resolve([{
+            let result = myAggregation._typeConfig.fields().reverse.resolve([{
                 id: 'test',
-                name: 'John',
+                name: 'John'
             },{  
                 id: 'test2',
-                name: 'Richard',
-            }])).toEqual([{  
+                name: 'Richard'
+            }])
+            expect(result.toArray()).toEqual([{  
                 id: 'test2',
-                name: 'Richard',
+                name: 'Richard'
             },{
                 id: 'test',
-                name: 'John',
-            }]);
+                name: 'John'
+            }])
         })
     });
 
@@ -303,7 +304,7 @@ describe('AggregationType', () => {
             expect(
                 myAggregation
                     ._typeConfig.fields().groupedBy.type
-                    ._typeConfig.fields().name.resolve(groupByObj))
+                    ._typeConfig.fields().name.resolve(groupByObj).toObject())
                 .toEqual({
                     John: [
                         {
@@ -497,7 +498,7 @@ describe('AggregationType', () => {
                 expect(
                     myAggregation
                         ._typeConfig.fields().filter.type
-                        ._typeConfig.fields().number.resolve(maxObj, {gt: 5}))
+                        ._typeConfig.fields().number.resolve(maxObj, {gt: 5}).toArray())
                     .toEqual([{
                         id: 'test3',
                         number: 9
@@ -534,7 +535,7 @@ describe('AggregationType', () => {
                 expect(
                     myAggregation
                         ._typeConfig.fields().filter.type
-                        ._typeConfig.fields().number.resolve(maxObj, {lt: 5}))
+                        ._typeConfig.fields().number.resolve(maxObj, {lt: 5}).toArray())
                     .toEqual([{
                         id: 'test',
                         number: 1
@@ -571,7 +572,7 @@ describe('AggregationType', () => {
                 expect(
                     myAggregation
                         ._typeConfig.fields().filter.type
-                        ._typeConfig.fields().number.resolve(maxObj, {gte: 5}))
+                        ._typeConfig.fields().number.resolve(maxObj, {gte: 5}).toArray())
                 .toEqual([{  
                         id: 'test2',
                         number: 5,
@@ -613,7 +614,7 @@ describe('AggregationType', () => {
                 expect(
                     myAggregation
                         ._typeConfig.fields().filter.type
-                        ._typeConfig.fields().number.resolve(maxObj, {lte: 5}))
+                        ._typeConfig.fields().number.resolve(maxObj, {lte: 5}).toArray())
                 .toEqual([{  
                         id: 'test',
                         number: 1,
@@ -654,7 +655,7 @@ describe('AggregationType', () => {
                 expect(
                     myAggregation
                         ._typeConfig.fields().filter.type
-                        ._typeConfig.fields().number.resolve(maxObj, {equal: 5}))
+                        ._typeConfig.fields().number.resolve(maxObj, {equal: 5}).toArray())
                 .toEqual([{
                         id: 'test2',
                         number: 5
@@ -691,7 +692,7 @@ describe('AggregationType', () => {
                 expect(
                     myAggregation
                         ._typeConfig.fields().filter.type
-                        ._typeConfig.fields().number.resolve(maxObj, {not: {equal: 5}}))
+                        ._typeConfig.fields().number.resolve(maxObj, {not: {equal: 5}}).toArray())
                 .toEqual([{
                     id: 'test',
                     number: 1,

@@ -1,6 +1,6 @@
 // @flow
 
-import {Map,fromJS} from 'immutable';
+import {Map, fromJS, Iterable, List} from 'immutable';
 import {GraphQLList,
     GraphQLFloat,
     GraphQLScalarType,
@@ -26,6 +26,8 @@ const INT_TYPE_NAME = 'Int';
 const FLOAT_TYPE_NAME = 'Float';
 const STRING_TYPE_NAME = 'String';
 
+
+
 /**
  * A list that has an associated group of keys,
  * @param {GraphQLOutputType} type that the keyed list is based on
@@ -35,6 +37,37 @@ const STRING_TYPE_NAME = 'String';
 // Because there is no way other then other then returning a
 // GraphQLScalarType to have key value pairs, and then
 // we have no way of adding more aggregations
+
+var keyedAggregationType = {};
+export function KeyedListAggregation(type: GraphQLOutputType): GraphQLObjectType{
+    if(!keyedAggregationType[type.name]){
+        keyedAggregationType[type.name] = new GraphQLObjectType({
+            name: `${type.name}AggregationKeyedList`,
+            fields: () => ({
+                key : {
+                    type: GraphQLString,
+                    description: `Key after aggregation`,
+                     resolve: (obj) => obj.key
+                },
+                aggregate: {
+                    type: new AggregationType(type),
+                    description:   `Further aggregaion ${type.name}`,
+                    resolve: (obj) => {
+                        return obj.value
+                    }
+                },
+                values: {
+                    type: new GraphQLList(type),
+                    description:   `Values after aggregation ${type.name}`,
+                    resolve: (obj) => {
+                        return obj.value
+                    } 
+                }
+            })
+        });
+    }
+    return keyedAggregationType[type.name]
+}
 
 var keyedListTypes = {};
 export function KeyedList(type: GraphQLOutputType): GraphQLObjectType{
@@ -50,17 +83,29 @@ export function KeyedList(type: GraphQLOutputType): GraphQLObjectType{
                 keys : {
                     type: new GraphQLList(GraphQLString),
                     description: `Keys after aggregation`,
-                     resolve: (obj) => fromJS(obj)
+                     resolve: (obj) => Map(obj)
                         .keySeq()
-                        .toJS()
+                        .toArray()
                 },
                 values: {
                     type: new GraphQLList(AggregationType(type)),
                     description:   `Values after aggregation ${type.name}`,
                     resolve: (obj) => {
-                        return fromJS(obj)
+                        return Map(obj)
                             .valueSeq()
-                            .toJS()
+                            .toArray()
+                    }
+                },
+                keyValue: {
+                    type: new GraphQLList(KeyedListAggregation(type)),
+                    description: `Key-Values after aggregation ${type.name}`,
+                    resolve: (obj) => {
+                        return Map(obj).reduce((rr, value, key) => {
+                            return rr.push({
+                                    key: key,
+                                    value: value
+                                })
+                        }, List()).toArray()
                     }
                 }
             })
@@ -248,7 +293,7 @@ var runFilterFunction = (field, key) => (args, ii) => {
 }
 
 var resolveIntFilter = (field, key) => (obj, args) => {
-    return fromJS(obj).filter(ii => runFilterFunction(field, key)(args, ii.toJS())).toJS()
+    return List(obj).filter(ii => runFilterFunction(field, key)(args, ii))
 }
 
 function filterFieldConfigFactory(fields, field: Map<string, *>, key: string, type: GraphQLObjectType): GraphQLFieldConfig{
@@ -288,7 +333,9 @@ export function AggregationType(type: GraphQLObjectType): GraphQLObjectType {
                 values : {
                     description: `List of ${type.name}`,
                     type: new GraphQLList(type),
-                    resolve: (obj: Array<*>): GraphQLList<*> => obj
+                    resolve: (obj: Array<*>|List<*>): GraphQLList<*> => {
+                        return List(obj).toArray()
+                    }
                 },
                 count : {
                     description: 'The amount of items in the aggregaion',
@@ -299,17 +346,17 @@ export function AggregationType(type: GraphQLObjectType): GraphQLObjectType {
                 first: {
                     description: 'Return the first item in the aggregaion',
                     type: type,
-                    resolve: (obj: Array<*>): * => fromJS(obj).first().toJS()
+                    resolve: (obj: Array<*>): * => List(obj).first()
                 },
                 last: {
                     description: 'Return the last item in the aggregaion',
                     type: type,
-                    resolve: (obj: Array<*>): * => fromJS(obj).last().toJS()
+                    resolve: (obj: Array<*>): * =>  List(obj).last()
                 },
                 reverse: {
                     description: 'Reverse the order of the items in the aggregaion',
                     type: AggregationType(type),
-                    resolve: (obj: Array<*>): * => fromJS(obj).reverse().toJS()
+                    resolve: (obj: Array<*>): * => List(obj).reverse()
                 },
                 //slice: {}
                 // sort: {
@@ -335,7 +382,7 @@ export function AggregationType(type: GraphQLObjectType): GraphQLObjectType {
                             return CreateFields(type, 
                                 KeyedList(type), 
                                 (fieldResolver: * , key: string, obj: *) => {
-                                    return fromJS(obj).groupBy(ii => fieldResolver(ii.toJS())).toJS()
+                                    return List(obj).groupBy(ii => fieldResolver(ii)).map(ii => ii.toArray())
                                 }, 
                                 () => true 
                             )
