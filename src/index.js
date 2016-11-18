@@ -336,6 +336,7 @@ export function AggregationType(type: GraphQLObjectType): GraphQLObjectType {
             fields: (): GraphQLFieldConfigMap => {
                 let typeFields = fromJS(type._typeConfig.fields())
                 let intFields = typeFields.filter(field => isFloat(field) || isInt(field))
+                console.log(intFields, intFields.count())
                 let fields = Map(
                     {
                         values : {
@@ -418,7 +419,7 @@ export function AggregationType(type: GraphQLObjectType): GraphQLObjectType {
                     
                 if(intFields.count() > 0){
                     // add integer operations
-                    fields.merge(
+                    return fields.merge(Map(
                         {
                         sum: { 
                             description: `Sum the values of a field on ${type.name}`,
@@ -500,7 +501,7 @@ export function AggregationType(type: GraphQLObjectType): GraphQLObjectType {
                             }),
                             resolve: (obj) => obj
                         }
-                    }, fields)
+                    })).toObject()
                 }
                 return fields.toObject();
             }
