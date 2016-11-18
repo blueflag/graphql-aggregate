@@ -438,6 +438,22 @@ export function AggregationType(type: GraphQLObjectType): GraphQLObjectType {
                     }),
                     resolve: (obj) => obj
                 },
+                median: {
+                    description: `Returns the median value of a field on ${type.name}`,
+                    type: new GraphQLObjectType({
+                        name: `${type.name}Median`,
+                        description: `Perform median calculation on ${type.name}`,
+                        fields: () => {
+                            return CreateFields(type, 
+                                GraphQLFloat, 
+                                (fieldResolver: * , key: string, obj: *) => {
+                                    return List(obj).update(imMath.medianBy(ii => fieldResolver(ii)))
+                                }, 
+                                (field) => isFloat(field) || isInt(field))
+                        }
+                    }),
+                    resolve: (obj) => obj  
+                },
                 min: {
                     description: `Returns the minium value of all the items on a field on ${type.name}`,
                     type: new GraphQLObjectType({
