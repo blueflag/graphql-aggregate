@@ -415,7 +415,7 @@ export function AggregationType(type: GraphQLObjectType): GraphQLObjectType {
                             return CreateFields(type, 
                                 GraphQLFloat, 
                                 (fieldResolver: * , key: string, obj: *) => {
-                                    return fromJS(obj).update(imMath.sumBy(ii => fieldResolver(ii.toJS())))
+                                    return List(obj).update(imMath.sumBy(ii => fieldResolver(ii)))
                                 }, 
                                 (field) => isFloat(field) || isInt(field))
                         }
@@ -431,7 +431,7 @@ export function AggregationType(type: GraphQLObjectType): GraphQLObjectType {
                             return CreateFields(type, 
                                 GraphQLFloat, 
                                 (fieldResolver: * , key: string, obj: *) => {
-                                    return fromJS(obj).update(imMath.averageBy(ii => fieldResolver(ii.toJS())))
+                                    return List(obj).update(imMath.averageBy(ii => fieldResolver(ii)))
                                 }, 
                                 (field) => isFloat(field) || isInt(field))
                         }
@@ -447,7 +447,7 @@ export function AggregationType(type: GraphQLObjectType): GraphQLObjectType {
                             return CreateFields(type, 
                                 GraphQLFloat, 
                                 (fieldResolver: * , key: string, obj: *) => {
-                                    return fromJS(obj).update(imMath.minBy(ii => fieldResolver(ii.toJS())))
+                                    return List(obj).update(imMath.minBy(ii => fieldResolver(ii)))
                                 }, 
                                 (field) => isFloat(field) || isInt(field))
                         }
@@ -463,7 +463,7 @@ export function AggregationType(type: GraphQLObjectType): GraphQLObjectType {
                             return CreateFields(type, 
                                 GraphQLFloat, 
                                 (fieldResolver: * , key: string, obj: *) => {
-                                    return fromJS(obj).update(imMath.maxBy(ii => fieldResolver(ii.toJS())))
+                                    return List(obj).update(imMath.maxBy(ii => fieldResolver(ii)))
                                 }, 
                                 (field) => isFloat(field) || isInt(field))
                         }
