@@ -154,7 +154,7 @@ var fieldResolver = (field, key) => (obj) => {
 }
 
 //fieldResolver resolver for the type that we are creating the filds for.
-function CreateFields(type: GraphQLOutputType,
+function createFields(type: GraphQLOutputType,
         returnType: GraphQLOutputType, 
         resolver: (fieldResolver: * , key: string, obj: *, field: Map<string,*>) => GraphQLFieldConfig,
         typeCheck: (field: GraphQLFieldConfig) => boolean
@@ -175,6 +175,19 @@ function CreateFields(type: GraphQLOutputType,
             return resultFields;
         }, Map()).toJS();
 }
+
+function createFieldsFromFieldList(fields, returnType: GraphQLOutputType, resolver: (fieldResolver: * , key: string, obj: *, field: Map<string,*>) => GraphQLFieldConfig ){
+        return fromJS(fields)
+            .reduce((resultFields: Map<string,*>, field: Map<string,*>, key: string): Map<string, GraphQLFieldConfig> => {
+                return resultFields.set(key, Map({
+                    type: returnType,
+                    resolve: (obj): GraphQLFieldConfig => {
+                        return resolver(fieldResolver(field,key), key, obj, field) 
+                    }
+                }))
+            }, Map()).toJS();
+}
+
 
 const FilterIntOperations = new GraphQLInputObjectType({
     name: "FilterIntOperations",
@@ -371,7 +384,7 @@ export function AggregationType(type: GraphQLObjectType): GraphQLObjectType {
                         // sort: {
                         //     description: 'Sort the list via the parameter',
                         //     fields: () =>
-                        //         CreateFields(type, 
+                        //         createFields(type, 
                         //             AggregationType(type),
                         //             (fieldResolver: * , key: string, obj: *) => {
                         //                 return fromJS(obj).sort((a, b) => {
@@ -388,7 +401,7 @@ export function AggregationType(type: GraphQLObjectType): GraphQLObjectType {
                                 description: `Preform groupBy aggregation methods on ${type.name}`,
                                 fields: () => {
 
-                                    return CreateFields(type, 
+                                    return createFields(type, 
                                         KeyedList(type), 
                                         (fieldResolver: * , key: string, obj: *) => {
                                             return List(obj).groupBy(ii => fieldResolver(ii)).map(ii => ii.toArray())
@@ -427,7 +440,7 @@ export function AggregationType(type: GraphQLObjectType): GraphQLObjectType {
                                 name: `${type.name}Sum`,
                                 description: `Perform sum on ${type.name}`,
                                 fields: () => {
-                                    return CreateFields(type, 
+                                    return createFieldsFromFieldList(intFields, 
                                         GraphQLFloat, 
                                         (fieldResolver: * , key: string, obj: *) => {
                                             return List(obj).update(imMath.sumBy(ii => fieldResolver(ii)))
@@ -443,7 +456,7 @@ export function AggregationType(type: GraphQLObjectType): GraphQLObjectType {
                                 name: `${type.name}Average`,
                                 description: `Perform averages on ${type.name}`,
                                 fields: () => {
-                                    return CreateFields(type, 
+                                    return createFieldsFromFieldList(intFields, 
                                         GraphQLFloat, 
                                         (fieldResolver: * , key: string, obj: *) => {
                                             return List(obj).update(imMath.averageBy(ii => fieldResolver(ii)))
@@ -459,7 +472,7 @@ export function AggregationType(type: GraphQLObjectType): GraphQLObjectType {
                                 name: `${type.name}Median`,
                                 description: `Perform median calculation on ${type.name}`,
                                 fields: () => {
-                                    return CreateFields(type, 
+                                    return createFieldsFromFieldList(intFields, 
                                         GraphQLFloat, 
                                         (fieldResolver: * , key: string, obj: *) => {
                                             return List(obj).update(imMath.medianBy(ii => fieldResolver(ii)))
@@ -475,7 +488,7 @@ export function AggregationType(type: GraphQLObjectType): GraphQLObjectType {
                                 name: `${type.name}Min`,
                                 description: `minium on value of a field for ${type.name}`,
                                 fields: () => {
-                                    return CreateFields(type, 
+                                    return createFieldsFromFieldList(intFields, 
                                         GraphQLFloat, 
                                         (fieldResolver: * , key: string, obj: *) => {
                                             return List(obj).update(imMath.minBy(ii => fieldResolver(ii)))
@@ -491,7 +504,7 @@ export function AggregationType(type: GraphQLObjectType): GraphQLObjectType {
                                 name: `${type.name}Max`,
                                 description: `maximum on value of a field for ${type.name}`,
                                 fields: () => {
-                                    return CreateFields(type, 
+                                    return createFieldsFromFieldList(intFields, 
                                         GraphQLFloat, 
                                         (fieldResolver: * , key: string, obj: *) => {
                                             return List(obj).update(imMath.maxBy(ii => fieldResolver(ii)))
