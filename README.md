@@ -11,6 +11,10 @@ via a graphql query on Arrays of GraphQL types.
 
 To get access to an aggregation schema on a graphql you require an array of objects
 
+###Sample Code
+
+A small sample, using express-graphql and some sample data exists [here](https://github.com/thepont/graphql-aggregate-sample)
+
 ###Example
 
 The following `GraphQLFieldConfig` defines a list of answers
@@ -26,6 +30,7 @@ It can be turned into an aggregate type using the following `GraphQLFieldConfig`
 _see GraphQL's documentation on field configuration of the [GraphQLObjectType](http://graphql.org/graphql-js/type/#graphqlobjecttype)_
 
 ```javascript
+import {AggregationType} from 'graphql-aggregate'
 
 // Creates an AggregationType with based on the AnswerType
 // The resolver must return an Array that can be resolved into AnswerTypes
