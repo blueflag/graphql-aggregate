@@ -149,8 +149,8 @@ export function isString(field: Map<string, *>): boolean {
  * Resolves fields using custom resolver or reverts to using obj.key
  */
 
-var fieldResolver = (field, key) => (obj) => {
-    return field.get('resolve', (obj)=> obj[key])(obj)
+var fieldResolver = (field, key) => (args, ctx, root) => (obj) => {
+    return field.get('resolve', (obj)=> obj[key])(obj, args, ctx, root)
 }
 
 //fieldResolver resolver for the type that we are creating the filds for.
@@ -167,8 +167,8 @@ function createFields(type: GraphQLOutputType,
             if(typeCheck(field)){
                 return resultFields.set(key, Map({
                     type: returnType,
-                    resolve: (obj): GraphQLFieldConfig => {
-                        return resolver(fieldResolver(field,key),key, obj, field) 
+                    resolve: (obj, args, ctx, root): GraphQLFieldConfig => {
+                        return resolver(fieldResolver(field, key)(args, ctx, root), key, obj, field) 
                     }
                 }))
             }
@@ -181,8 +181,8 @@ function createFieldsFromFieldList(fields, returnType: GraphQLOutputType, resolv
             .reduce((resultFields: Map<string,*>, field: Map<string,*>, key: string): Map<string, GraphQLFieldConfig> => {
                 return resultFields.set(key, Map({
                     type: returnType,
-                    resolve: (obj): GraphQLFieldConfig => {
-                        return resolver(fieldResolver(field,key), key, obj, field) 
+                    resolve: (obj, args, ctx, root): GraphQLFieldConfig => {
+                        return resolver(fieldResolver(field, key)(args, ctx, root), key, obj, field)
                     }
                 }))
             }, Map()).toJS();
@@ -292,21 +292,21 @@ const filterFunctions = (field, key) => ({
 
 })
 
-var runFilterFunction = (field, key) => (args, ii) => {
+var runFilterFunction = (field, key) => (args, ii, ctx, root ) => {
     let {gt, lt, gte, lte, equal, not} = filterFunctions(field, key);
     let resolver = fieldResolver(field, key);
 
-    return gt(args, resolver(ii)) 
-            && lt(args, resolver(ii)) 
-            && gte(args, resolver(ii)) 
-            && lte(args, resolver(ii)) 
-            && equal(args, resolver(ii)) 
-            && not(args, resolver(ii), ii) 
+    return gt(args, resolver({}, ctx, root)(ii)) 
+            && lt(args, resolver({}, ctx, root)(ii)) 
+            && gte(args, resolver({}, ctx, root)(ii)) 
+            && lte(args, resolver({}, ctx, root)(ii)) 
+            && equal(args, resolver({}, ctx, root)(ii)) 
+            && not(args, resolver({}, ctx, root)(ii), ii) 
     //&& filterFunctions.or(args, field.get('resolve')(ii));
 }
 
-var resolveIntFilter = (field, key) => (obj, args) => {
-    return List(obj).filter(ii => runFilterFunction(field, key)(args, ii))
+var resolveIntFilter = (field, key) => (obj, args, ctx, root) => {
+    return List(obj).filter(ii => runFilterFunction(field, key)(args, ii, ctx, root))
 }
 
 function filterFieldConfigFactory(fields, field: Map<string, *>, key: string, type: GraphQLObjectType): GraphQLFieldConfig{
@@ -364,7 +364,7 @@ export function AggregationType(type: GraphQLObjectType): GraphQLObjectType {
                         count : {
                             description: 'The amount of items in the aggregaion',
                             type: GraphQLInt,
-                            resolve: (obj: Array<*>): number => obj.length
+                            resolve: (obj: Array<*>): number => List(obj).count()
 
                         },
                         first: {
@@ -406,7 +406,7 @@ export function AggregationType(type: GraphQLObjectType): GraphQLObjectType {
                                     return createFields(type, 
                                         KeyedList(type), 
                                         (fieldResolver: * , key: string, obj: *) => {
-                                            return List(obj).groupBy(ii => fieldResolver(ii)).map(ii => ii.toArray())
+                                            return List(obj).groupBy(fieldResolver).map(ii => ii.toArray())
                                         }, 
                                         () => true 
                                     )
@@ -447,7 +447,7 @@ export function AggregationType(type: GraphQLObjectType): GraphQLObjectType {
                                         return createFieldsFromFieldList(intFields, 
                                             GraphQLFloat, 
                                             (fieldResolver: * , key: string, obj: *) => {
-                                                return List(obj).update(imMath.sumBy(ii => fieldResolver(ii)))
+                                                return List(obj).update(imMath.sumBy(fieldResolver))
                                             }, 
                                             (field) => isFloat(field) || isInt(field))
                                     }
@@ -463,7 +463,7 @@ export function AggregationType(type: GraphQLObjectType): GraphQLObjectType {
                                         return createFieldsFromFieldList(intFields, 
                                             GraphQLFloat, 
                                             (fieldResolver: * , key: string, obj: *) => {
-                                                return List(obj).update(imMath.averageBy(ii => fieldResolver(ii)))
+                                                return List(obj).update(imMath.averageBy(fieldResolver))
                                             }, 
                                             (field) => isFloat(field) || isInt(field))
                                     }
@@ -479,7 +479,7 @@ export function AggregationType(type: GraphQLObjectType): GraphQLObjectType {
                                         return createFieldsFromFieldList(intFields, 
                                             GraphQLFloat, 
                                             (fieldResolver: * , key: string, obj: *) => {
-                                                return List(obj).update(imMath.medianBy(ii => fieldResolver(ii)))
+                                                return List(obj).update(imMath.medianBy(fieldResolver))
                                             }, 
                                             (field) => isFloat(field) || isInt(field))
                                     }
@@ -495,7 +495,7 @@ export function AggregationType(type: GraphQLObjectType): GraphQLObjectType {
                                         return createFieldsFromFieldList(intFields, 
                                             GraphQLFloat, 
                                             (fieldResolver: * , key: string, obj: *) => {
-                                                return List(obj).update(imMath.minBy(ii => fieldResolver(ii)))
+                                                return List(obj).update(imMath.minBy(fieldResolver))
                                             }, 
                                             (field) => isFloat(field) || isInt(field))
                                     }
@@ -511,7 +511,7 @@ export function AggregationType(type: GraphQLObjectType): GraphQLObjectType {
                                         return createFieldsFromFieldList(intFields, 
                                             GraphQLFloat, 
                                             (fieldResolver: * , key: string, obj: *) => {
-                                                return List(obj).update(imMath.maxBy(ii => fieldResolver(ii)))
+                                                return List(obj).update(imMath.maxBy(fieldResolver))
                                             }, 
                                             (field) => isFloat(field) || isInt(field))
                                     }
