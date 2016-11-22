@@ -478,7 +478,7 @@ export function AggregationType(type: GraphQLObjectType): GraphQLObjectType {
                         })
                     if(intFields.count() > 0){
                         // add integer operations
-                        return fields.merge(Map(
+                        fields = fields.merge(Map(
                             {
                             sum: { 
                                 description: `Sum the values of a field on ${type.name}`,
@@ -570,7 +570,7 @@ export function AggregationType(type: GraphQLObjectType): GraphQLObjectType {
                                 }),
                                 resolve: (obj) => obj
                             }
-                        })).toObject()
+                        }))
                     }
                 }
                 return fields.toObject();
