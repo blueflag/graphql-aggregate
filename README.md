@@ -11,11 +11,11 @@ via a graphql query on Arrays of GraphQL types.
 
 To get access to an aggregation schema on a graphql you require an array of objects
 
-###Sample Code
+### Sample Code
 
 A small sample, using express-graphql and some sample data exists [here](https://github.com/thepont/graphql-aggregate-sample)
 
-###Example
+### Example
 
 The following `GraphQLFieldConfig` defines a list of answers
 
@@ -98,7 +98,7 @@ aggregateAnswers {
 
 Aggregation types will be named based on the type the were created from, for instance if our type was named `Answer` our aggregation type would be named `AnswerAggregation`.
 
-####Fields Provided
+#### Fields Provided
 
 The follow is the fields that are provided via the api, the best way of seeing exactly how it works is by using GraphiQL to investigate the fields.
 
